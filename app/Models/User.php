@@ -13,8 +13,8 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     // defind const instead of using 1 2 3 for better readability
-    const ONLINE_STATUS_ONLINE = 2;
-    const ONLINE_STATUS_OFFLINE = 3;
+    const ONLINE = 2;
+    const OFFLINE = 3;
     const STATUS_ACTIVE = 1;
     const STATUS_BANNED = 0;
 
