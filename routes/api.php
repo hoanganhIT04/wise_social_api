@@ -28,3 +28,5 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::patch('/update-password', [\App\Http\Controllers\APIController::class, 'updatePassword']);
     Route::delete('/delete-user/{id}', [\App\Http\Controllers\APIController::class, 'deleteUser']);
 });
+
+Route::post('/register', [\App\Http\Controllers\AuthController::class, 'register']);

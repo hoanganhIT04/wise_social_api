@@ -53,12 +53,12 @@ class ApiResponse
         ]);
     }
 
-    public function BadRequest()
+    public function BadRequest($message = null)
     {
         return json_encode([
             'code' => 400,
             'data' => null,
-            'message' => 'Bad request.'
+            'message' => $message
         ]);
     }
 
