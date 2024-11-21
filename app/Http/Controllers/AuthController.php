@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Helpers\ApiResponse;
 use App\Models\User;
+use App\Mail\RegisterMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Lang;
+use Illuminate\Support\Facades\Mail;
 
 class AuthController extends Controller
 {
@@ -40,6 +42,7 @@ class AuthController extends Controller
         $user->email = $param['email'];
         $user->password = Hash::make($param['password']);
         $user->save();
+        Mail::to($param['email'])->send(new RegisterMail($param));
         return $this->ApiResponse->success();
     }
 }
