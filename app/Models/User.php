@@ -34,6 +34,7 @@ class User extends Authenticatable
         'overview',
         'online_status',
         'status',
+        'login_fail'
     ];
 
     /**
