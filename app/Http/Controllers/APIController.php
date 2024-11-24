@@ -74,7 +74,7 @@ class APIController extends Controller
     public function login(Request $request)
     {
         $param = $request->all();
-        $crediticals = [
+        $credential = [
             'email' => $param['email'],
             'password' => $param['password']
         ];
@@ -87,7 +87,7 @@ class APIController extends Controller
         }
 
         // Process login
-        if (Auth::attempt($crediticals)) {
+        if (Auth::attempt($credential)) {
             $user = Auth::user();
             $success = $user->createToken($user->id);
             return $this->apiResponse->success($success);
@@ -103,6 +103,21 @@ class APIController extends Controller
                 Mail::to($param['email'])->send(new InvalidLoginMail($user));
                 return $this->apiResponse->UnAuthorization(Lang::get('message.auth.login_limit_exceeded'));
             }
+        }
+    }
+
+    public function unlock($hashId)
+    {
+        // dd($hashId);
+        $users = User::select('id')->get();
+        foreach ($users as $user) {
+            if (md5($user->id) == $hashId) {
+                $userId = $user->id;
+            }
+        }
+        if ($userId !== 0) {
+            DB::table('users')->where('id', $userId)->update(['login_fail' => 0]);
+            return redirect('http://localhost:5173/auth');
         }
     }
 
