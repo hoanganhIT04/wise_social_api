@@ -62,12 +62,12 @@ class ApiResponse
         ]);
     }
 
-    public function UnAuthorization()
+    public function UnAuthorization($message = null)
     {
         return json_encode([
             'code' => 401,
             'data' => null,
-            'message' => 'UnAuthorization.'
+            'message' => $message
         ]);
     }
 
