@@ -50,6 +50,10 @@ class UserController extends Controller
             return $this->apiResponse->UnAuthorization();
         };
 
+        // Get following
+        $following = Follow::where('user_id', $myInfo->id)->count();
+        // Get follower
+        $follower = Follow::where('user_id', '<>', $myInfo->id)->where('follow_id', $myInfo->id)->count();
         // Unset unnecessary 
         unset(
             $myInfo['email_verified_at'], 
@@ -59,6 +63,8 @@ class UserController extends Controller
             $myInfo['status'], 
             $myInfo['login_fail']
         );
+        $myInfo->following = $following;
+        $myInfo->follower = $follower;
         return $this->apiResponse->success($myInfo);
     }
 
