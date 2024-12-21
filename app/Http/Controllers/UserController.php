@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Helpers\ApiResponse;
 use App\Models\Follow;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -45,27 +46,20 @@ class UserController extends Controller
      */
     public function show(Request $request)
     {
-        $myInfo = Auth::user();
-        if (!$myInfo) {
+        $userId = Auth::id();
+        if (!$userId) {
             return $this->apiResponse->UnAuthorization();
         };
 
-        // Get following
-        $following = Follow::where('user_id', $myInfo->id)->count();
-        // Get follower
-        $follower = Follow::where('user_id', '<>', $myInfo->id)->where('follow_id', $myInfo->id)->count();
-        // Unset unnecessary 
-        unset(
-            $myInfo['email_verified_at'], 
-            $myInfo['location'], 
-            $myInfo['city'], 
-            $myInfo['online_status'], 
-            $myInfo['status'], 
-            $myInfo['login_fail']
-        );
-        $myInfo->following = $following;
-        $myInfo->follower = $follower;
-        return $this->apiResponse->success($myInfo);
+        $user = User::with('follower', 'follows')
+            ->select('id', 'name', 'email', 'avatar', 'overview')
+            ->where('id', $userId)->first();
+
+        $user->followers = count($user->follower);
+        $user->following = count($user->follows);
+        unset($user->follower, $user->follows);
+
+        return $this->apiResponse->success($user);
     }
 
     /**
