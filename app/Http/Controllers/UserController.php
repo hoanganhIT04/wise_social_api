@@ -61,6 +61,12 @@ class UserController extends Controller
         $user->following = count($user->follows);
         unset($user->follower, $user->follows);
 
+        $folderAvatar = null;
+        if (!is_null($user->avatar) ) {
+            $folderAvatar = explode('@', $user->email);
+            $user->avatar = url('avatars/' . $folderAvatar[0] . '/' . $user->avatar);
+        }
+
         return $this->apiResponse->success($user);
     }
 
