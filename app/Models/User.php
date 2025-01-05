@@ -3,8 +3,9 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Auth;
+// use Auth;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -77,5 +78,9 @@ class User extends Authenticatable
      public function follows() {
         return $this->hasMany('\App\Models\Follow', 'user_id', 'id')
         ->where('user_id', Auth::user()->id);
+    }
+
+    public function experiences() {
+        return $this->hasMany('\App\Models\Experience', 'user_id', 'id');
     }
 }
