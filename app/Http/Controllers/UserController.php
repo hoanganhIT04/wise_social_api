@@ -47,7 +47,7 @@ class UserController extends Controller
      * Display the specified resource.
      *
      * 
-     */
+     */ 
     public function show(Request $request)
     {
         // Get authenticated user ID
