@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Helpers\ApiResponse;
 use App\Models\Follow;
+use App\Models\Friend;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
@@ -47,7 +50,7 @@ class UserController extends Controller
      * Display the specified resource.
      *
      * 
-     */ 
+     */
     public function show(Request $request)
     {
         // Get authenticated user ID
@@ -80,6 +83,11 @@ class UserController extends Controller
         return $this->apiResponse->success($user);
     }
 
+    /**
+     * Controller for suggesting friends
+     * @param \Illuminate\Http\Request $request
+     * @return bool|string
+     */
     public function suggestFriend(Request $request)
     {
         // Get authenticated user ID
@@ -114,7 +122,7 @@ class UserController extends Controller
             foreach ($suggest as $user) {
                 // Initialize avatar folder variable
                 $folderAvatar = null;
-                
+
                 // Generate full avatar URL if user has avatar
                 if (!is_null($user->avatar)) {
                     $folderAvatar = explode('@', $user->email);
@@ -124,7 +132,7 @@ class UserController extends Controller
                 // Initialize experience text and counter
                 $txtExperience = '';
                 $i = 1;
-                
+
                 // Build comma-separated list of experience titles
                 foreach ($user->experiences as $experience) {
                     if ($i < count($user->experiences)) {
@@ -134,15 +142,50 @@ class UserController extends Controller
                     }
                     $i++;
                 }
-                
+
                 // Replace experiences array with formatted string
-                $user->experience = $txtExperience;
+                $user->experience = $this->truncateString($txtExperience, 20);
                 unset($user->experiences);
             }
         }
 
         // Return success response with suggested friends
         return $this->apiResponse->success($suggest);
+    }
+    // Function to truncate if title is too long
+    private function truncateString($string, $length, $append = '...')
+    {
+        if (mb_strlen($string) > $length) {
+            return mb_substr($string, 0, $length) . $append;
+        }
+        return $string;
+    }
+
+    /**
+     * Controller for Add Friend function
+     * @param \Illuminate\Http\Request $request
+     * @return bool|string
+     */
+    public function addFriend(Request $request)
+    {
+        $param = $request->all();
+        try {
+            DB::beginTransaction();
+            $friend = new Friend();
+            $friend->user_id = Auth::id();
+            $friend->friend_id = $param['friend_id'];
+            $friend->approved = Friend::UNAPPROVED;
+            $friend->created_at = Carbon::now();
+            $friend->save();
+            DB::commit();
+
+            return $this->apiResponse->success();
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error($e->getMessage());
+
+            return $this->apiResponse->InternalServerError();
+        }
     }
 
     /**
