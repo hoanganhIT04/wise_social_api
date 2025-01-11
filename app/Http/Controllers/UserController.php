@@ -281,6 +281,54 @@ class UserController extends Controller
     }
 
     /**
+     * Most followed
+     * 
+     */
+    public function mostFollowed(Request $request)
+    {
+        $user = User::select(
+            'users.id',
+            'users.name',
+            'users.email',
+            'users.avatar',
+            DB::raw('COUNT(follows.id) as total_follow'),
+            'follows.follow_id'
+        )->join('follows', 'users.id', 'follows.follow_id')
+            ->with([
+                'experiences' => function ($experienceQuery) {
+                    return $experienceQuery->select('id', 'user_id', 'title');
+                }
+            ])->groupBy(
+                'follows.follow_id',
+                'users.id',
+                'users.name',
+                'users.email',
+                'users.avatar'
+            )->orderBy('total_follow', 'DESC')->first();
+        $folderAvatar = null;
+        if (!is_null($user->avatar)) {
+            $folderAvatar = explode('@', $user->email);
+            $user->avatar = url(
+                'avatars/' . $folderAvatar[0] . '/' . $user->avatar
+            );
+        }
+        $txtExperience = '';
+        $i = 1;
+        foreach ($user->experiences as $experience) {
+            if ($i < count($user->experiences)) {
+                $txtExperience .= $experience->title . ', ';
+            } else {
+                $txtExperience .= $experience->title;
+            }
+            $i++;
+        }
+        $user->experience = $this->truncateString($txtExperience, 15);
+        $user->name = $this->truncateString($user->name, 10);
+        unset($user->experiences);
+        return $this->apiResponse->success($user);
+    }
+
+    /**
      * Show the form for editing the specified resource.
      */
     public function edit(string $id)
