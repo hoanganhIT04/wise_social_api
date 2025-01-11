@@ -170,11 +170,11 @@ class UserController extends Controller
     {
         // Get all request parameters
         $param = $request->all();
-        
+
         try {
             // Start database transaction
             DB::beginTransaction();
-            
+
             // Create new friend request record
             $friend = new Friend();
             $friend->user_id = Auth::id(); // Current authenticated user
@@ -182,7 +182,7 @@ class UserController extends Controller
             $friend->approved = Friend::UNAPPROVED; // Set initial unapproved status
             $friend->created_at = Carbon::now();
             $friend->save();
-            
+
             // Commit transaction if successful
             DB::commit();
 
@@ -208,10 +208,11 @@ class UserController extends Controller
                 return $experienceQuery->select('id', 'user_id', 'title');
             }
         ])
-            ->join('friends', 'users.id', 'friends.friend_id')
+            ->join('friends', 'users.id', 'friends.user_id')
             ->where('friend_id', $userId) // Exclude current friends and self
             ->where('status', User::STATUS_ACTIVE) // Only active users
-            ->select('friends.id', 'users.name', 'users.avatar', 'users.created_at') // Select needed fields
+            ->where('friends.approved', Friend::UNAPPROVED)
+            ->select('friends.id', 'users.email', 'users.name', 'users.avatar', 'users.created_at') // Select needed fields
             ->orderBy('friends.created_at', 'ASC') // Sort by join date
             ->limit(config('constant.limit')) // Limit results
             ->get();
@@ -244,14 +245,39 @@ class UserController extends Controller
                     $i++;
                 }
 
-                // Replace experiences array with formatted string
-                $user->experience = $this->truncateString($txtExperience, 20);
+                // Replace long string with truncated string
+                $user->experience = $this->truncateString($txtExperience, length: 15);
+                $user->name = $this->truncateString($user->name, length: 15);
                 unset($user->experiences);
             }
         }
 
         // Return success response with suggested friends
         return $this->apiResponse->success($requests);
+    }
+
+    /**
+     * Accept or dismiss a friend request
+     * Updates friend status to approved if accepted, deletes record if dismissed
+     * 
+     */
+    public function accept(Request $request)
+    {
+        $param = $request->all();
+
+        if ($param['type'] == 'accept') {
+            // Approve friend request by updating status
+            return DB::table('friends')
+                ->where('id', $param['id'])
+                ->update([
+                    'approved' => Friend::APPROVED
+                ]);
+        } else {
+            // Delete friend request if dismissed
+            return DB::table('friends')
+                ->where('id', $param['id'])
+                ->delete();
+        }
     }
 
     /**
