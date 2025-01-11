@@ -31,6 +31,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/my-info', [\App\Http\Controllers\UserController::class, 'show']);
     Route::get('/list-suggest-friend', [\App\Http\Controllers\UserController::class, 'suggestFriend']);
     Route::get('/add-friend', [\App\Http\Controllers\UserController::class, 'addFriend']);
+    Route::get('/list-friend-request', [\App\Http\Controllers\UserController::class, 'listFriendRequest']);
 });
 
 Route::post('/register', [\App\Http\Controllers\AuthController::class, 'register']);
