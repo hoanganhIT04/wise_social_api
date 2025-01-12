@@ -286,6 +286,7 @@ class UserController extends Controller
      */
     public function mostFollowed(Request $request)
     {
+        // Get most followed user with their basic info and follow count
         $user = User::select(
             'users.id',
             'users.name',
@@ -305,6 +306,8 @@ class UserController extends Controller
                 'users.email',
                 'users.avatar'
             )->orderBy('total_follow', 'DESC')->first();
+
+        // Build full avatar URL if user has avatar
         $folderAvatar = null;
         if (!is_null($user->avatar)) {
             $folderAvatar = explode('@', $user->email);
@@ -312,6 +315,8 @@ class UserController extends Controller
                 'avatars/' . $folderAvatar[0] . '/' . $user->avatar
             );
         }
+
+        // Build comma-separated list of experiences
         $txtExperience = '';
         $i = 1;
         foreach ($user->experiences as $experience) {
@@ -322,10 +327,73 @@ class UserController extends Controller
             }
             $i++;
         }
+
+        // Truncate long strings and clean up response
         $user->experience = $this->truncateString($txtExperience, 15);
         $user->name = $this->truncateString($user->name, 10);
         unset($user->experiences);
         return $this->apiResponse->success($user);
+    }
+
+    public function search(Request $request)
+    {
+        // Get all request parameters
+        $param = $request->all();
+
+        // Query users with their experiences, filtering by name or email
+        $users = User::with([
+            // Load experiences relationship with only necessary fields
+            'experiences' => function ($experienceQuery) {
+                return $experienceQuery->select('id', 'user_id', 'title');
+            }
+        ])
+            // Select only necessary user fields
+            ->select('id', 'name', 'email', 'avatar')
+            // Filter users who have experiences matching the search keyword
+            ->whereHas('experiences', function ($query) use ($param) {
+                return $query->where('title', 'Like', '%' . $param['key-word'] . '%');
+            })
+            // Search users where name or email starts with search keyword
+            ->orWhere('name', 'Like', '%' . $param['key-word'] . '%')
+            ->orWhere('email', 'Like', '%' .  $param['key-word'] . '%')
+            // Sort results by newest first
+            ->orderBy('id', "DESC")
+            ->get();
+
+        if (count($users) > 0) {
+            foreach ($users as $user) {
+                // Initialize variable to store email prefix for avatar path
+                $folderAvatar = null;
+
+                // If user has an avatar, construct the full URL
+                // Avatar is stored in a folder named after user's email prefix
+                if (!is_null($user->avatar)) {
+                    $folderAvatar = explode('@', $user->email);
+                    $user->avatar = url('avatars/' . $folderAvatar[0] . '/' . $user->avatar);
+                }
+
+                // Initialize variables for formatting experience list
+                $txtExperience = '';
+                $i = 1;
+
+                // Create a comma-separated string of user's experience titles
+                // Last experience title doesn't get a comma
+                foreach ($user->experiences as $experience) {
+                    if ($i < count($user->experiences)) {
+                        $txtExperience .= $experience->title . ', ';
+                    } else {
+                        $txtExperience .= $experience->title;
+                    }
+                    $i++;
+                }
+
+                // Convert experiences to truncated string and remove original array
+                // Limit experience string to 20 characters to keep response concise
+                $user->experience = $this->truncateString($txtExperience, 20);
+                unset($user->experiences);
+            }
+        }
+        return $this->apiResponse->success($users);
     }
 
     /**
