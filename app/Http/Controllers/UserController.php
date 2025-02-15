@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\ApiResponse;
+use App\Helpers\SendMail;
 use App\Models\Follow;
 use App\Models\Friend;
 use App\Models\User;
@@ -185,6 +186,13 @@ class UserController extends Controller
 
             // Commit transaction if successful
             DB::commit();
+
+            // Send notify email
+            $receivUser = User::find($param['friend_id']);
+            $sendMail = new SendMail();
+            $sendMail->sendMail003($receivUser, Auth::user());
+            // TODO Send notification (firebase)
+            //
 
             return $this->apiResponse->success();
         } catch (\Exception $e) {
@@ -389,7 +397,8 @@ class UserController extends Controller
 
                 // Convert experiences to truncated string and remove original array
                 // Limit experience string to 20 characters to keep response concise
-                $user->experience = $this->truncateString($txtExperience, 20);
+                $user->experience = $this->truncateString($txtExperience, 100);
+                $user->name = $this->truncateString($user->name, 100);
                 unset($user->experiences);
             }
         }
