@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Helpers\ApiResponse;
 use App\Helpers\SendMail;
+use App\Models\DeviceToken;
 use App\Models\Follow;
 use App\Models\Friend;
+use App\Models\Notification;
 use App\Models\User;
 use Carbon\Carbon;
+use Google\Service\AndroidEnterprise\Device;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -191,8 +194,15 @@ class UserController extends Controller
             $receivUser = User::find($param['friend_id']);
             $sendMail = new SendMail();
             $sendMail->sendMail003($receivUser, Auth::user());
+
             // TODO Send notification (firebase)
-            //
+            $notification = new Notification();
+            $notification->user_id = $param['friend_id'];
+            $notification->actor_id = Auth::id();
+            $notification->content = Auth::user()->name . " sent you a friend request.";
+            $notification->is_view = Notification::UNVIEW;
+            $notification->status = Notification::STATUS_WAIT;
+            $notification->save();
 
             return $this->apiResponse->success();
         } catch (\Exception $e) {
@@ -403,6 +413,29 @@ class UserController extends Controller
             }
         }
         return $this->apiResponse->success($users);
+    }
+
+    public function setDeviceToken(Request $request)
+    {
+        $param = $request->all();
+        $userId = Auth::user()->id;
+
+        // Check if token already exists
+        $checkToken = DeviceToken::where('user_id', $userId)->get();
+
+        if (count($checkToken) == 0) {
+            $deviceToken = new DeviceToken();
+            $deviceToken->user_id = Auth::user()->id;
+            $deviceToken->token = $param['fcmToken'];
+            $deviceToken->save();
+        } else {
+            $deviceToken = DeviceToken::where('user_id', $userId)->first();
+            $deviceToken->token = $param['fcmToken'];
+            $deviceToken->updated_at = Carbon::now();
+            $deviceToken->update();
+        }
+
+        return $this->apiResponse->success($deviceToken);
     }
 
     /**
