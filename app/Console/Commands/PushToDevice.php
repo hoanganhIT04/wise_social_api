@@ -55,7 +55,7 @@ class PushToDevice extends Command
                     ->where('id', $notification->id)
                     ->update([
                         'status' => Notification::STATUS_FAIL,
-                        'error_message' => 'Device token is missing.'
+                        // 'error_message' => 'Device token is missing.'
                     ]);
                 $this->error("Notification {$notification->id} failed: Device token is missing.");
             } else {
@@ -75,7 +75,7 @@ class PushToDevice extends Command
                         ->where('id', $notification->id)
                         ->update([
                             'status' => Notification::STATUS_FAIL,
-                            'error_message' => 'Failed to send FCM notification.'
+                            // 'error_message' => 'Failed to send FCM notification.'
                         ]);
                     $this->error("Notification {$notification->id} failed: Failed to send FCM notification. Error: " . $firebaseService->getLastError());
                 }
