@@ -44,27 +44,28 @@ class FirebaseService
   public function sendFCM($content, $deviceToken)
   {
     try {
-      // Send POST request to FCM with notification data
+      // Send POST request to FCM wiƒth notification data
       $response = $this->client->request('POST', self::FCM_URL, [
         'headers' => [
-          'Authorization' => 'Bearer ' . $this->firebaseToken,
-          'Content-Type' => 'application/json',
+          'Authorization' => 'Bearer ' . $this->firebaseToken, // Use the Firebase token for authorization
+          'Content-Type' => 'application/json', // Set content type to JSON
         ],
         'json' => [
           'message' => [
-            'token' => $deviceToken,
+            'token' => $deviceToken, // The device token to send the notification to
             'notification' => [
-              'title' => 'Wise Social',
-              'body' => $content,
+              'title' => 'Wise Social', // Notification title
+              'body' => $content, // Notification body/content
             ],
           ],
         ],
       ]);
-      // dd(json_decode($response->getBody(), true));
-      return true;
+      // dd(json_decode($response->getBody(), true)); // Uncomment for debugging, this will dump the response body
+      return true; // Return true if the request was successful
     } catch (\Exception $e) {
-      $this->lastError = $e->getMessage();
-      return false;
+      // Catch any exceptions that occur during the request
+      $this->lastError = $e->getMessage(); // Store the error message
+      return false; // Return false if an error occurred
     }
   }
 

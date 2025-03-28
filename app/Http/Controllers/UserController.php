@@ -156,12 +156,22 @@ class UserController extends Controller
         // Return success response with suggested friends
         return $this->apiResponse->success($suggest);
     }
-    // Function to truncate if title is too long
+    /**
+     * Truncates a string to a specified length, appending a suffix if truncated.
+     *
+     * @param string $string The string to truncate.
+     * @param int $length The maximum length of the string.
+     * @param string $append The suffix to append if the string is truncated (default: '...').
+     * @return string The truncated string.
+     */
     private function truncateString($string, $length, $append = '...')
     {
+        // Check if the string's length exceeds the specified length.
         if (mb_strlen($string) > $length) {
+            // If it does, truncate the string to the specified length and append the suffix.
             return mb_substr($string, 0, $length) . $append;
         }
+        // If the string's length is within the limit, return the original string.
         return $string;
     }
 
@@ -195,7 +205,7 @@ class UserController extends Controller
             $sendMail = new SendMail();
             $sendMail->sendMail003($receivUser, Auth::user());
 
-            // TODO Send notification (firebase)
+            // Add notification to queue
             $notification = new Notification();
             $notification->user_id = $param['friend_id'];
             $notification->actor_id = Auth::id();
