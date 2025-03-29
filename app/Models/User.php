@@ -64,10 +64,11 @@ class User extends Authenticatable
      * 
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-     public function follower() {
+    public function follower()
+    {
         return $this->hasMany('\App\Models\Follow', 'user_id', 'id')
-        ->where('user_id', '<>', Auth::user()->id)
-        ->where('follow_id', Auth::user()->id);
+            ->where('user_id', '<>', Auth::user()->id)
+            ->where('follow_id', Auth::user()->id);
     }
 
     /**
@@ -75,12 +76,41 @@ class User extends Authenticatable
      * 
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-     public function follows() {
-        return $this->hasMany('\App\Models\Follow', 'user_id', 'id')
-        ->where('user_id', Auth::user()->id);
+    public function follows()
+    {
+        return $this->hasMany(
+            '\App\Models\Follow',
+            'user_id',
+            'id'
+        )
+            ->where('user_id', Auth::user()->id);
     }
 
-    public function experiences() {
-        return $this->hasMany('\App\Models\Experience', 'user_id', 'id');
+    /**
+     * Relationship function to get the user's experiences.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function experiences()
+    {
+        return $this->hasMany(
+            '\App\Models\Experience',
+            'user_id',
+            'id'
+        );
+    }
+
+    /**
+     * Relationship function to get the user's skills.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function skills()
+    {
+        return $this->hasMany(
+            '\App\Models\Skill',
+            'id',
+            'user_id'
+        );
     }
 }

@@ -9,6 +9,9 @@ class Post extends Model
 {
     use HasFactory;
 
+    const LIKE = 1;
+    const UN_LIKE = 0;
+
     protected $table = "posts";
 
     protected $fillable = [
@@ -18,4 +21,46 @@ class Post extends Model
         'view_count',
         'images'
     ];
+
+    /**
+     * Get all of the comments for the Post
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function comments()
+    {
+        return $this->hasMany(
+            '\App\Models\Comment',
+            'post_id',
+            'id'
+        );
+    }
+
+    /**
+     * Get all of the likes for the Post
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function likes()
+    {
+        return $this->hasMany(
+            '\App\Models\Like',
+            'post_id',
+            'id'
+        );
+    }
+
+    /**
+     * Get the author of the post.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function author()
+    {
+        return $this->hasOne(
+            '\App\Models\User',
+            'id',
+            'user_id'
+        );
+    }
 }
