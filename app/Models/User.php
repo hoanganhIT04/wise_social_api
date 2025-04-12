@@ -109,8 +109,8 @@ class User extends Authenticatable
     {
         return $this->hasMany(
             '\App\Models\Skill',
+            'user_id',
             'id',
-            'user_id'
         );
     }
 }
