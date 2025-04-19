@@ -63,4 +63,18 @@ class Post extends Model
             'user_id'
         );
     }
+
+    /**
+     * Get all of the favorite records for the Post
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function favorites()
+    {
+        return $this->hasMany(
+            '\App\Models\Favorite',
+            'post_id',
+            'id'
+        );
+    }
 }

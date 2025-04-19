@@ -17,4 +17,28 @@ class Comment extends Model
         'comment',
         'parent_id',
     ];
+
+    /**
+     * Get the child comments (replies) for the comment.
+     */
+    public function child()
+    {
+        return $this->hasMany(
+            '\App\Models\Comment',
+            'parent_id',
+            'id',
+        );
+    }
+
+    /**
+     * Get the author of the comment.
+     */
+    public function author()
+    {
+        return $this->hasOne(
+            '\App\Models\User',
+            'id',
+            'user_id',
+        );
+    }
 }
