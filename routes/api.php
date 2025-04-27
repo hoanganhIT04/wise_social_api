@@ -44,6 +44,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/like', [\App\Http\Controllers\TimelineController::class, 'like']);
     Route::get('/list-comment', [\App\Http\Controllers\TimelineController::class, 'listComment']);
 
+    Route::post('/comment', [\App\Http\Controllers\TimelineController::class, 'postComment']);
 });
 
 Route::post('/register', [\App\Http\Controllers\AuthController::class, 'register']);

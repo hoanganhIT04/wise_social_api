@@ -323,15 +323,15 @@ class TimelineController extends Controller
             foreach ($comments as $comment) {
 
                 // Generate avatar URL for the top-level comment author if available
-                if (!is_null($comments->author->avatar)) {
-                    $avatarTmp = $comments->author->avatar;
-                    $comments->author->_avatar = env('APP_URL')
+                if (!is_null($comment->avatar)) {
+                    $avatarTmp = $comment->avatar;
+                    $comment->_avatar = env('APP_URL')
                         . '/avatars/'
-                        . explode('@', $comments->author->email)[0]
+                        . explode('@', $comment->email)[0]
                         . '/'
                         . $avatarTmp;
                 } else {
-                    $comments->author->_avatar = null;
+                    $comments->_avatar = null;
                 }
 
                 // Check if the comment has any replies (child comments)
@@ -349,12 +349,62 @@ class TimelineController extends Controller
                         } else {
                             $cmtChild->author->_avatar = null;
                         }
+
+                        $created_at_tmp_child = Carbon::create($cmtChild->created_at);
+                        $cmtChild->_created_at = $created_at_tmp_child->format('Y-m-d h:i');
                     }
                 }
+
+                $created_at_tmp = Carbon::create($comment->created_at);
+                $comment->_created_at = $created_at_tmp->format('Y-m-d h:i');
             }
         }
 
         // Return a success response with the fetched comments
         return $this->apiResponse->success($comments);
+    }
+
+    /**
+     * Post a new comment or reply to a post.
+     *
+     * Creates a new comment record in the database based on the provided request data.
+     * The request should include post_id, comment content, and parent_id (0 for top-level comments).
+     *
+     * @param \Illuminate\Http\Request $request The incoming HTTP request with comment data.
+     * @return string|mixed JSON response indicating success or error.
+     */
+    public function postComment(Request $request)
+    {
+        $param = $request->all();
+        $comment = new Comment();
+        $comment->user_id = Auth::user()->id;
+        $comment->post_id = $param['post_id'];
+        $comment->comment = $param['comment'];
+        $comment->parent_id = $param['parent'];
+        $comment->save();
+
+        $avatar = Auth::user()->avatar;
+        $avatar = null;
+        if (!is_null(Auth::user()->avatar)) {
+            $avatarTmp = Auth::user()->avatar;
+            $avatar = env('APP_URL') . 'avatars/'
+                . explode('@', Auth::user()->email)[0] . '/'
+                . $avatarTmp;
+        }
+        $responseData = [
+            'id' => $comment->id,
+            'comment' => $param['comment'],
+            'avatar' => $avatar,
+            'name' => Auth::user()->name,
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+            'parent_id' => $param['parent'],
+            'child' => null,
+            'post_id' => $param['post_id'],
+            'type' => 'comment',
+            'action' => 'send_comment',
+        ];
+
+        return $this->apiResponse->success($responseData);
     }
 }
