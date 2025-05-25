@@ -388,7 +388,7 @@ class TimelineController extends Controller
         $avatar = null;
         if (!is_null(Auth::user()->avatar)) {
             $avatarTmp = Auth::user()->avatar;
-            $avatar = env('APP_URL') . 'avatars/'
+            $avatar = env('APP_URL') . '/avatars/'
                 . explode('@', Auth::user()->email)[0] . '/'
                 . $avatarTmp;
         }
@@ -404,6 +404,12 @@ class TimelineController extends Controller
             'post_id' => $param['post_id'],
             'type' => 'comment',
             'action' => 'send_comment',
+
+            'author' => [
+                'name' => Auth::user()->name,
+                '_avatar' => $avatar
+            ],
+            '_created_at' => Carbon::now(),
         ];
 
         return $this->apiResponse->success($responseData);
