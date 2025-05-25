@@ -297,6 +297,7 @@ class TimelineController extends Controller
                 // Select necessary columns, aliasing comment ID for clarity
                 'users.id as user_id',
                 'users.name',
+                'users.email',
                 'users.avatar',
                 'comments.id',
                 'comments.comment',
@@ -342,7 +343,7 @@ class TimelineController extends Controller
                         if (!is_null($cmtChild->author->avatar)) {
                             $avatarTmp = $cmtChild->author->avatar;
                             $cmtChild->author->_avatar = env('APP_URL')
-                                . 'avatars/'
+                                . '/avatars/'
                                 . explode('@', $cmtChild->author->email)[0]
                                 . '/'
                                 . $avatarTmp;
