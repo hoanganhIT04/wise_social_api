@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Helpers\ApiResponse;
 use App\Helpers\SendMail;
+use App\Models\ChatRoom;
 use App\Models\DeviceToken;
 use App\Models\Follow;
 use App\Models\Friend;
+use App\Models\Message;
 use App\Models\Notification;
 use App\Models\User;
 use Carbon\Carbon;
@@ -425,26 +427,78 @@ class UserController extends Controller
         return $this->apiResponse->success($users);
     }
 
+    /**
+     * List all friends of the authenticated user.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     */
+    public function listFriend(Request $request)
+    {
+        // Get authenticated user's ID
+        $userId = Auth::id();
+
+        // Retrieve friends of the authenticated user
+        $friends = Friend::join(
+            'users', // Join with the users table
+            'friends.friend_id', // Friend ID in the friends table
+            'users.id' // User ID in the users table
+        )
+            ->select( // Select specific user fields
+                'users.id',
+                'users.name',
+                'users.email',
+                'users.avatar',
+                'users.online_status'
+            )
+            ->where('friends.user_id', $userId) // Filter by authenticated user's ID
+            ->where('friends.approved', Friend::APPROVED) // Only approved friends
+            ->orderBy('friends.created_at', 'DESC') // Order by friend request creation date
+            ->get(); // Execute the query and get results
+
+        $listMessage = Message::where('user_id', $userId)
+            ->orWhere('friend_id', $userId)
+            ->orderBy('created_at', 'DESC')
+            ->get();
+
+        foreach ($friends as $friend) {
+            $friend->last_message = '';
+            foreach ($listMessage as $message) {
+                if ($friend->id == $message->user_id || $friend->id == $message->friend_id) {
+                    $friend->last_message = $message->message;
+                    $friend->last_sent = Carbon::create($message->created_at)->diffForHumans();
+                    continue;
+                }
+            }
+        }
+
+        return $this->apiResponse->success($friends);
+    }
+
     public function setDeviceToken(Request $request)
     {
+        // Get all request parameters
         $param = $request->all();
+        // Get authenticated user's ID
         $userId = Auth::user()->id;
 
-        // Check if token already exists
+        // Check if a device token already exists for the user
         $checkToken = DeviceToken::where('user_id', $userId)->get();
 
+        // If no token exists, create a new one
         if (count($checkToken) == 0) {
             $deviceToken = new DeviceToken();
-            $deviceToken->user_id = Auth::user()->id;
-            $deviceToken->token = $param['fcmToken'];
+            $deviceToken->user_id = Auth::user()->id; // Assign user ID
+            $deviceToken->token = $param['fcmToken']; // Assign FCM token from request
             $deviceToken->save();
         } else {
-            $deviceToken = DeviceToken::where('user_id', $userId)->first();
-            $deviceToken->token = $param['fcmToken'];
-            $deviceToken->updated_at = Carbon::now();
+            // If token exists, update the existing one
+            $deviceToken = DeviceToken::where('user_id', $userId)->first(); // Get the existing token
+            $deviceToken->token = $param['fcmToken']; // Update the token
+            $deviceToken->updated_at = Carbon::now(); // Update timestamp
             $deviceToken->update();
         }
 
+        // Return a success response with the device token data
         return $this->apiResponse->success($deviceToken);
     }
 
