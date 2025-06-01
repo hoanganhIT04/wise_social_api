@@ -10,7 +10,7 @@ class Message extends Model
 
     const UNVIEW = 1;
     const VIEWED = 2;
-    
+
     use HasFactory;
 
     protected $table = "messages";
@@ -18,6 +18,7 @@ class Message extends Model
     protected $fillable = [
         'user_id',
         'friend_id',
+        'room_id',
         'message',
         'is_view'
     ];
