@@ -427,79 +427,136 @@ class UserController extends Controller
         return $this->apiResponse->success($users);
     }
 
+    public function setDeviceToken(Request $request)
+    {
+        $param = $request->all();
+        $userId = Auth::user()->id;
+
+        // Check if token already exists
+        $checkToken = DeviceToken::where('user_id', $userId)->get();
+
+        if (count($checkToken) == 0) {
+            $deviceToken = new DeviceToken();
+            $deviceToken->user_id = Auth::user()->id;
+            $deviceToken->token = $param['fcmToken'] ?? 0;
+            $deviceToken->save();
+        } else {
+            $deviceToken = DeviceToken::where('user_id', $userId)->first();
+            $deviceToken->token = $param['fcmToken'] ?? 0;
+            $deviceToken->updated_at = Carbon::now();
+            $deviceToken->update();
+        }
+
+        return $this->apiResponse->success($deviceToken);
+    }
+
     /**
-     * List all friends of the authenticated user.
-     *
-     * @param  \Illuminate\Http\Request  $request
+     * Show list friend on chat message box
      */
     public function listFriend(Request $request)
     {
-        // Get authenticated user's ID
-        $userId = Auth::id();
-
-        // Retrieve friends of the authenticated user
-        $friends = Friend::join(
-            'users', // Join with the users table
-            'friends.friend_id', // Friend ID in the friends table
-            'users.id' // User ID in the users table
-        )
-            ->select( // Select specific user fields
-                'users.id',
-                'users.name',
-                'users.email',
-                'users.avatar',
+        $userId = Auth::user()->id;
+        // List my friends
+        $friends = Friend::join('users', 'friends.friend_id', 'users.id')
+            ->select(
+                'users.id', 'users.name', 'users.email', 'users.avatar',
                 'users.online_status'
-            )
-            ->where('friends.user_id', $userId) // Filter by authenticated user's ID
-            ->where('friends.approved', Friend::APPROVED) // Only approved friends
-            ->orderBy('friends.created_at', 'DESC') // Order by friend request creation date
-            ->get(); // Execute the query and get results
-
-        $listMessage = Message::where('user_id', $userId)
-            ->orWhere('friend_id', $userId)
-            ->orderBy('created_at', 'DESC')
+            )->where('friends.user_id', $userId)
+            ->where('friends.approved', Friend::APPROVED)
+            ->orderBy('friends.created_at', 'DESC')
             ->get();
-
+        $listMessage = Message::where('user_id', $userId)
+                ->orWhere('friend_id', $userId)
+                ->orderBy('created_at', 'ASC')
+                ->get();
         foreach ($friends as $friend) {
-            $friend->last_message = '';
-            foreach ($listMessage as $message) {
-                if ($friend->id == $message->user_id || $friend->id == $message->friend_id) {
-                    $friend->last_message = $message->message;
-                    $friend->last_sent = Carbon::create($message->created_at)->diffForHumans();
+            $friend->last_message = "";
+            foreach ($listMessage as $msg) {
+                if ($friend->id == $msg->user_id || $friend->id == $msg->friend_id) {
+                    $friend->last_message = $msg->message;
+                    $friend->last_sent = Carbon::create($msg->created_at)->diffForHumans();
                     continue;
                 }
             }
         }
-
         return $this->apiResponse->success($friends);
     }
 
-    public function setDeviceToken(Request $request)
+    public function listMessage(Request $request) 
     {
-        // Get all request parameters
         $param = $request->all();
-        // Get authenticated user's ID
         $userId = Auth::user()->id;
-
-        // Check if a device token already exists for the user
-        $checkToken = DeviceToken::where('user_id', $userId)->get();
-
-        // If no token exists, create a new one
-        if (count($checkToken) == 0) {
-            $deviceToken = new DeviceToken();
-            $deviceToken->user_id = Auth::user()->id; // Assign user ID
-            $deviceToken->token = $param['fcmToken']; // Assign FCM token from request
-            $deviceToken->save();
+        $userInRoom = [
+            "[".$userId.", ".$param['friendId']."]",
+            "[".$param['friendId'].", ".$userId."]"
+        ];
+        $room = ChatRoom::where('user_id', $userInRoom[0])
+            ->orWhere('user_id', $userInRoom[1])->first();
+        $roomId = null;
+        if (!$room) {
+            $createRoom = new ChatRoom();
+            $createRoom->user_id = $userInRoom[0];
+            $createRoom->save();
+            $roomId = $createRoom->id;
         } else {
-            // If token exists, update the existing one
-            $deviceToken = DeviceToken::where('user_id', $userId)->first(); // Get the existing token
-            $deviceToken->token = $param['fcmToken']; // Update the token
-            $deviceToken->updated_at = Carbon::now(); // Update timestamp
-            $deviceToken->update();
+            $roomId = $room->id;
         }
+        $messages = Message::join('users', 'messages.user_id', 'users.id')
+            ->select(
+                'messages.id', 'users.name', 'users.avatar', 'messages.message',
+                'messages.user_id', 'messages.friend_id', 'messages.is_view', 'messages.created_at'
+            )->where('messages.room_id', $roomId)
+            ->orderBy('messages.created_at', 'ASC')
+            ->get()->map(function ($item) use ($userId, $roomId) {
+                if ($item->user_id == $userId) {
+                    // My message
+                    $item->my_message = "me";
+                }
+                if ($item->friend_id == $userId) {
+                    // My of my friend
+                    $item->my_message = "friend";
+                }
+                $carbon = Carbon::create($item->created_at);
+                $item->_created_at = $carbon->format('Y-m-d h:i');
+                $item->room_id = $roomId;
+                $item->type = "message";
+                $item->action = "join";
+                return $item;
+            });
+        $responseData = [
+            'room_id' => $roomId,
+            'messages' => $messages,
+            'user_id' => Auth::user()->id
+        ];
+        return $this->apiResponse->success($responseData);
+    }
 
-        // Return a success response with the device token data
-        return $this->apiResponse->success($deviceToken);
+    public function sendMessage(Request $request)
+    {
+        $param = $request->all();
+        $message = new Message();
+        $message->user_id = Auth::user()->id;
+        $message->friend_id = $param['friend_id'];
+        $message->room_id = $param['room_id'];
+        $message->message = $param['message_content'];
+        $message->is_view = Message::UNVIEW;
+        $message->save();
+        $responseData = [
+            "id" => $message->id,
+            "name"=> Auth::user()->name,
+            "avatar"=> "user-pro-img.png",
+            "message"=> $param['message_content'],
+            "user_id"=> Auth::user()->id,
+            "friend_id"=> (int) $param['friend_id'],
+            "is_view"=> Message::UNVIEW,
+            "created_at"=> Carbon::now(),
+            "my_message"=> "me",
+            "_created_at"=> Carbon::now()->format('Y-m-d h:i'),
+            "room_id" => (int) $param['room_id'],
+            "type" => "message",
+            "action" => "send-message"
+        ];
+        return $this->apiResponse->success($responseData);
     }
 
     /**

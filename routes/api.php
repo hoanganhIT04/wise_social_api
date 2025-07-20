@@ -35,6 +35,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/accept', [\App\Http\Controllers\UserController::class, 'accept']);
     Route::get('/most-followed', [\App\Http\Controllers\UserController::class, 'mostFollowed']);
     Route::get('/list-friend', [\App\Http\Controllers\UserController::class, 'listFriend']);
+    Route::get('/list-message', [\App\Http\Controllers\UserController::class, 'listMessage']);
 
 
     Route::get('/search', [\App\Http\Controllers\UserController::class, 'search']);
@@ -48,6 +49,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/list-comment', [\App\Http\Controllers\TimelineController::class, 'listComment']);
 
     Route::post('/comment', [\App\Http\Controllers\TimelineController::class, 'postComment']);
+    Route::post('/send-message', [\App\Http\Controllers\UserController::class, 'sendMessage']);
 });
 
 Route::post('/register', [\App\Http\Controllers\AuthController::class, 'register']);
