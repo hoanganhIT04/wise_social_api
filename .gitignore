@@ -26,3 +26,5 @@ Homestead.json
 .DS_Store
 
 public/post_images
+
+/storage/firebase_credentials.json
